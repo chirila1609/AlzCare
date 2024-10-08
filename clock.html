@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Joc Ceas Analogic</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #DFD9E2;
+        }
+        .game-container {
+            text-align: center;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .clock {
+            width: 200px;
+            height: 200px;
+            border: 2px solid black;
+            border-radius: 50%;
+            position: relative;
+            margin: 20px auto;
+        }
+        .hand {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            transform-origin: 50% 100%;
+            background-color: black;
+        }
+        .hour-hand {
+            width: 6px;
+            height: 60px;
+            margin-left: -3px;
+        }
+        .minute-hand {
+            width: 4px;
+            height: 80px;
+            margin-left: -2px;
+            background-color: red;
+        }
+        .center-dot {
+            width: 12px;
+            height: 12px;
+            background-color: black;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .hour-mark {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        button {
+    margin: 5px;
+    padding: 5px 10px;
+    background-color: #9575cd;
+    color: white;
+    border: none;
+    border-radius: 7px; 
+}
+
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Setează Ceasul!</h1>
+        <p>Ora țintă: <span id="target-time"></span></p>
+        <div class="clock">
+            <div class="hand hour-hand"></div>
+            <div class="hand minute-hand"></div>
+            <div class="center-dot"></div>
+        </div>
+        <div>
+            <button onclick="adjustHand('hour', -1)">Ora -</button>
+            <button onclick="adjustHand('hour', 1)">Ora +</button>
+            <button onclick="adjustHand('minute', -1)">Minutul -</button>
+            <button onclick="adjustHand('minute', 1)">Minutul +</button>
+        </div>
+        <button onclick="checkTime()">Trimite</button>
+        <button id="back-button">Înapoi la pagina utilizatorului</button>
+        <p>Timp scurs: <span id="timer">00:00</span></p>
+        <p id="result"></p>
+    </div>
+
+    <script>
+        let targetTime, startTime, timerInterval;
+        let currentHour = 0, currentMinute = 0;
+
+        document.getElementById('back-button').addEventListener('click', function() {
+        window.location.href = 'user.php';
+    });
+
+        function generateRandomTime() {
+            const hour = Math.floor(Math.random() * 12) + 1;
+            const minute = Math.floor(Math.random() * 60);
+            return moment().hour(hour).minute(minute).second(0);
+        }
+
+        function updateClock() {
+            const hourAngle = (currentHour % 12 + currentMinute / 60) * 30;
+            const minuteAngle = currentMinute * 6;
+            
+            document.querySelector('.hour-hand').style.transform = `rotate(${hourAngle}deg)`;
+            document.querySelector('.minute-hand').style.transform = `rotate(${minuteAngle}deg)`;
+        }
+
+        function adjustHand(hand, change) {
+            if (hand === 'hour') {
+                currentHour = ((currentHour - 1 + change + 12) % 12) + 1;
+            } else {
+                currentMinute = (currentMinute + change + 60) % 60;
+            }
+            updateClock();
+        }
+
+        function startGame() {
+            targetTime = generateRandomTime();
+            document.getElementById('target-time').textContent = targetTime.format('hh:mm A');
+            startTime = new Date();
+            clearInterval(timerInterval);
+            timerInterval = setInterval(updateTimer, 1000);
+            currentHour = 12;
+            currentMinute = 0;
+            updateClock();
+        }
+
+        function updateTimer() {
+            const elapsedTime = new Date() - startTime;
+            const minutes = Math.floor(elapsedTime / 60000);
+            const seconds = Math.floor((elapsedTime % 60000) / 1000);
+            document.getElementById('timer').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function checkTime() {
+            const userTime = moment().hour(currentHour).minute(currentMinute);
+            const difference = Math.abs(targetTime.diff(userTime, 'minutes'));
+            
+            let resultMessage;
+            if (difference === 0) {
+                resultMessage = "Perfect! Ai nimerit exact!";
+            } else if (difference <= 5) {
+                resultMessage = `Aproape! Ai greșit cu ${difference} minut(e).`;
+            } else {
+                resultMessage = `Nu chiar. Ai greșit cu ${difference} minute. Ora corectă era ${targetTime.format('hh:mm A')}.`;
+            }
+            
+            document.getElementById('result').textContent = resultMessage;
+            
+            
+            setTimeout(startGame, 3000);
+        }
+
+        function createClockFace() {
+            const clock = document.querySelector('.clock');
+            for (let i = 1; i <= 12; i++) {
+                const mark = document.createElement('div');
+                mark.className = 'hour-mark';
+                mark.style.transform = `rotate(${i * 30}deg)`;
+                mark.innerHTML = `<span style="display:inline-block;transform:rotate(-${i * 30}deg)">${i}</span>`;
+                clock.appendChild(mark);
+            }
+        }
+
+        createClockFace();
+        startGame();
+    </script>
+</body>
+</html>

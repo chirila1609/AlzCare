@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Joc Labirint</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+
+        #game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #maze {
+            display: grid;
+            grid-template-columns: repeat(21, 20px);
+            grid-template-rows: repeat(21, 20px);
+            gap: 2px;
+        }
+
+        .cell {
+            width: 20px;
+            height: 20px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+        }
+
+        .wall {
+            background-color: #000;
+        }
+
+        .path {
+            background-color: #4caf50;
+        }
+
+        .player {
+            background-color: #ff0000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .exit {
+            background-color: #00ff00;
+        }
+
+        #controls {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        button {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #9575cd;
+    color: white;
+    border: none;
+    border-radius: 10px; /* This makes the button rounder */
+}
+
+
+        #timer {
+            font-size: 18px;
+        }
+
+        #mobile-controls {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .arrow-button {
+            width: 50px;
+            height: 50px;
+            margin: 5px;
+            font-size: 24px;
+            text-align: center;
+            line-height: 50px;
+            background-color: #ccc;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="maze"></div>
+        <div id="controls">
+            <button id="restart">Repornește</button>
+            <button id="back-button">Înapoi la pagina utilizatorului</button>
+            <div id="timer">Timp: 0s</div>
+        </div>
+        <div id="mobile-controls">
+            <button class="arrow-button" id="up">↑</button>
+            <div>
+                <button class="arrow-button" id="left">←</button>
+                <button class="arrow-button" id="right">→</button>
+            </div>
+            <button class="arrow-button" id="down">↓</button>
+        </div>
+    </div>
+    <script>
+        
+        document.getElementById('back-button').addEventListener('click', function() {
+        window.location.href = 'user.php';
+    });
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            const maze = document.getElementById('maze');
+            const restartButton = document.getElementById('restart');
+            const timerDisplay = document.getElementById('timer');
+            const upButton = document.getElementById('up');
+            const downButton = document.getElementById('down');
+            const leftButton = document.getElementById('left');
+            const rightButton = document.getElementById('right');
+            let timer;
+            let time = 0;
+            let playerPosition = { x: 1, y: 1 };
+            let exitPosition = { x: 19, y: 19 };
+
+            function createMaze() {
+                const rows = 21;
+                const cols = 21;
+                const mazeArray = generateMaze(rows, cols);
+                maze.innerHTML = '';
+                for (let row = 0; row < rows; row++) {
+                    for (let col = 0; col < cols; col++) {
+                        const cell = document.createElement('div');
+                        cell.classList.add('cell');
+                        if (mazeArray[row][col] === 1) {
+                            cell.classList.add('wall');
+                        } else if (row === playerPosition.x && col === playerPosition.y) {
+                            cell.classList.add('player');
+                            cell.textContent = 'O';
+                        } else if (row === exitPosition.x && col === exitPosition.y) {
+                            cell.classList.add('exit');
+                        }
+                        maze.appendChild(cell);
+                    }
+                }
+            }
+
+            function generateMaze(rows, cols) {
+                const maze = Array.from({ length: rows }, () => Array(cols).fill(1));
+                function carve(x, y) {
+                    const directions = [
+                        [0, 2], [2, 0], [0, -2], [-2, 0]
+                    ];
+                    directions.sort(() => Math.random() - 0.5);
+                    for (const [dx, dy] of directions) {
+                        const nx = x + dx;
+                        const ny = y + dy;
+                        if (nx > 0 && ny > 0 && nx < rows - 1 && ny < cols - 1 && maze[nx][ny] === 1) {
+                            maze[nx][ny] = 0;
+                            maze[x + dx / 2][y + dy / 2] = 0;
+                            carve(nx, ny);
+                        }
+                    }
+                }
+                maze[1][1] = 0;
+                carve(1, 1);
+                return maze;
+            }
+
+            function startTimer() {
+                timer = setInterval(() => {
+                    time++;
+                    timerDisplay.textContent = `Timp: ${time}s`;
+                }, 1000);
+            }
+
+            function resetGame() {
+                clearInterval(timer);
+                time = 0;
+                timerDisplay.textContent = 'Timp: 0s';
+                playerPosition = { x: 1, y: 1 };
+                createMaze();
+                startTimer();
+            }
+
+            function movePlayer(dx, dy) {
+                const newX = playerPosition.x + dx;
+                const newY = playerPosition.y + dy;
+                const cells = maze.children;
+                const newCell = cells[newX * 21 + newY];
+                if (!newCell.classList.contains('wall')) {
+                    const currentCell = cells[playerPosition.x * 21 + playerPosition.y];
+                    currentCell.classList.remove('player');
+                    currentCell.textContent = '';
+                    playerPosition = { x: newX, y: newY };
+                    newCell.classList.add('player');
+                    newCell.textContent = 'O';
+                    if (newX === exitPosition.x && newY === exitPosition.y) {
+                        alert('Felicitări! Ai terminat labirintul.');
+                        resetGame();
+                    }
+                }
+            }
+
+            document.addEventListener('keydown', (e) => {
+                switch (e.key) {
+                    case 'ArrowUp':
+                        movePlayer(-1, 0);
+                        break;
+                    case 'ArrowDown':
+                        movePlayer(1, 0);
+                        break;
+                    case 'ArrowLeft':
+                        movePlayer(0, -1);
+                        break;
+                    case 'ArrowRight':
+                        movePlayer(0, 1);
+                        break;
+                }
+            });
+
+            upButton.addEventListener('click', () => movePlayer(-1, 0));
+            downButton.addEventListener('click', () => movePlayer(1, 0));
+            leftButton.addEventListener('click', () => movePlayer(0, -1));
+            rightButton.addEventListener('click', () => movePlayer(0, 1));
+
+            restartButton.addEventListener('click', resetGame);
+
+            createMaze();
+            startTimer();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integrame</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #DFD9E2;
+        }
+        .container {
+            text-align: center;
+            max-width: 800px;
+            padding: 20px;
+        }
+        .crossword {
+            display: inline-grid;
+            gap: 1px;
+            
+            padding: 1px;
+            margin-bottom: 20px;
+        }
+        .cell {
+            width: 30px;
+            height: 30px;
+            background-color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            position: relative;
+            border: 1px solid #ccc;
+        }
+        input {
+            width: 25px;
+            height: 25px;
+            text-align: center;
+            font-size: 18px;
+            border: none;
+            outline: none;
+        }
+        .number {
+            position: absolute;
+            top: 1px;
+            left: 1px;
+            font-size: 10px;
+            color: #666;
+        }
+        button {
+    background-color: #9575cd;
+    color: white;
+    border: none;
+    border-radius: 7px; 
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    display: block; 
+    margin-bottom: 10px; 
+}
+        .clues {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .clues div {
+            width: 48%;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="crossword" id="crossword"></div>
+        <button onclick="checkAnswers()">Verifică</button>
+        <button onclick="location.reload()">Generează Nou Joc</button>
+        <button id="back-button">Înapoi la pagina utilizatorului</button>
+        <div class="clues">
+            <div id="acrossClues">
+                <h3>Orizontal:</h3>
+            </div>
+            <div id="downClues">
+                <h3>Vertical:</h3>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const wordList = [
+            {word: "CASA", clue: "Locuință"},
+            {word: "SOARE", clue: "Stea care ne încălzește"},
+            {word: "MARE", clue: "Întindere mare de apă sărată"},
+            {word: "PAR", clue: "Fruct sau parte a capului"},
+            {word: "CARTE", clue: "Obiect de citit"},
+            {word: "MASĂ", clue: "Mobilă pentru servit mâncarea"},
+            {word: "COPAC", clue: "Plantă cu trunchi lemnos"},
+            {word: "FLOARE", clue: "Parte frumoasă și colorată a unei plante"},
+            {word: "CÂINE", clue: "Animal de companie care latră"},
+            {word: "PÂINE", clue: "Aliment de bază făcut din făină"},
+            {word: "MUNTE", clue: "Formă de relief înaltă"},
+            {word: "STEA", clue: "Corp ceresc luminos"},
+            {word: "LAPTE", clue: "Băutură albă produsă de vaci"}
+        ];
+
+        let grid, words, size;
+
+        function generateCrossword() {
+            size = 10;
+            grid = Array(size).fill().map(() => Array(size).fill(null));
+            words = [];
+
+            let attempts = 0;
+            while (words.length < 5 && attempts < 50) {
+                const wordData = wordList[Math.floor(Math.random() * wordList.length)];
+                const word = wordData.word;
+                const isHorizontal = Math.random() < 0.5;
+
+                if (placeWord(word, isHorizontal, wordData)) {
+                    attempts = 0;
+                } else {
+                    attempts++;
+                }
+            }
+        }
+
+        function placeWord(word, isHorizontal, wordData) {
+            const attempts = 100;
+            for (let attempt = 0; attempt < attempts; attempt++) {
+                const row = Math.floor(Math.random() * size);
+                const col = Math.floor(Math.random() * size);
+
+                if (canPlaceWord(word, row, col, isHorizontal)) {
+                    placeWordInGrid(word, row, col, isHorizontal);
+                    words.push({...wordData, row, col, isHorizontal});
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function canPlaceWord(word, row, col, isHorizontal) {
+            if (isHorizontal && col + word.length > size) return false;
+            if (!isHorizontal && row + word.length > size) return false;
+
+            for (let i = 0; i < word.length; i++) {
+                const currentRow = isHorizontal ? row : row + i;
+                const currentCol = isHorizontal ? col + i : col;
+
+                if (grid[currentRow][currentCol] !== null && grid[currentRow][currentCol] !== word[i]) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        function placeWordInGrid(word, row, col, isHorizontal) {
+            for (let i = 0; i < word.length; i++) {
+                const currentRow = isHorizontal ? row : row + i;
+                const currentCol = isHorizontal ? col + i : col;
+                grid[currentRow][currentCol] = word[i];
+            }
+        }
+
+        function createCrosswordHTML() {
+            const crossword = document.getElementById('crossword');
+            let minRow = size, maxRow = 0, minCol = size, maxCol = 0;
+
+            
+            words.forEach(word => {
+                minRow = Math.min(minRow, word.row);
+                maxRow = Math.max(maxRow, word.isHorizontal ? word.row : word.row + word.word.length - 1);
+                minCol = Math.min(minCol, word.col);
+                maxCol = Math.max(maxCol, word.isHorizontal ? word.col + word.word.length - 1 : word.col);
+            });
+
+            crossword.style.gridTemplateColumns = `repeat(${maxCol - minCol + 1}, 30px)`;
+
+            for (let i = minRow; i <= maxRow; i++) {
+                for (let j = minCol; j <= maxCol; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    if (grid[i][j] !== null) {
+                        const input = document.createElement('input');
+                        input.maxLength = 1;
+                        input.dataset.row = i;
+                        input.dataset.col = j;
+                        cell.appendChild(input);
+
+                        const wordNumber = getWordNumber(i, j);
+                        if (wordNumber !== null) {
+                            const number = document.createElement('span');
+                            number.className = 'number';
+                            number.textContent = wordNumber;
+                            cell.appendChild(number);
+                        }
+                    } else {
+                        cell.style.visibility = 'hidden';
+                    }
+                    crossword.appendChild(cell);
+                }
+            }
+        }
+
+        function getWordNumber(row, col) {
+            const index = words.findIndex(word => word.row === row && word.col === col);
+            return index !== -1 ? index + 1 : null;
+        }
+
+        function displayClues() {
+            const acrossClues = document.getElementById('acrossClues');
+            const downClues = document.getElementById('downClues');
+
+            words.forEach((word, index) => {
+                const clueElement = document.createElement('p');
+                clueElement.textContent = `${index + 1}. ${word.clue}`;
+                if (word.isHorizontal) {
+                    acrossClues.appendChild(clueElement);
+                } else {
+                    downClues.appendChild(clueElement);
+                }
+            });
+        }
+
+        function checkAnswers() {
+            const inputs = document.querySelectorAll('input');
+            let allCorrect = true;
+            inputs.forEach(input => {
+                const row = parseInt(input.dataset.row);
+                const col = parseInt(input.dataset.col);
+                if (input.value.toUpperCase() === grid[row][col]) {
+                    input.style.backgroundColor = '#aaffaa';
+                } else {
+                    input.style.backgroundColor = '#ffaaaa';
+                    allCorrect = false;
+                }
+            });
+            if (allCorrect) {
+                alert('Felicitări! Ai rezolvat corect toate cuvintele!');
+            }
+        }
+
+        generateCrossword();
+        createCrosswordHTML();
+        displayClues();
+
+        document.getElementById('back-button').addEventListener('click', function() {
+        window.location.href = 'user.php';
+    });
+    </script>
+</body>
+</html>
